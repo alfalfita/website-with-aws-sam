@@ -6,11 +6,12 @@ Description: >
 Parameters:
   DomainName:
     Type: String
-    Description: "Nombre de dominio"
+    Description: 'Nombre de dominio'
+    Default: 'demo-chile-14032023'
   IndexDocument:
     Type: String
-    Description: "Documento index"
-    Default: "index.html"
+    Description: 'Documento index'
+    Default: 'index.html'
 
 Resources:
   CloudFrontOriginAccessIdentity:
@@ -18,7 +19,6 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: 'Desplegando un sitio web con AWS SAM'
-
 
   S3Bucket:
     Type: AWS::S3::Bucket
@@ -34,14 +34,14 @@ Resources:
           - Effect: Allow
             Action: 's3:GetObject'
             Resource:
-              - !Sub "arn:aws:s3:::${S3Bucket}/*"
+              - !Sub 'arn:aws:s3:::${S3Bucket}/*'
             Principal:
-              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}'
 
   RewriteRequestFunction:
     Type: AWS::CloudFront::Function
     Properties:
-      Name: !Sub "${AWS::StackName}-req"
+      Name: !Sub '${AWS::StackName}-req'
       AutoPublish: true
       FunctionCode: !Sub |
         function handler(event) {
@@ -54,22 +54,20 @@ Resources:
           return request;
         }
       FunctionConfig:
-        Comment: !Sub "rewrite sub-directory path with trailing /${IndexDocument}"
+        Comment: !Sub 'rewrite sub-directory path with trailing /${IndexDocument}'
         Runtime: cloudfront-js-1.0
 
-
-
   CloudfrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
+    Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
-        Comment: "Cloudfront distribution"
-        DefaultRootObject: "index.html"
+        Comment: 'Cloudfront distribution'
+        DefaultRootObject: 'index.html'
         Enabled: true
         HttpVersion: http2
         Origins:
           - Id: s3-website
-            DomainName: !Sub "${S3Bucket}.s3.${AWS::Region}.amazonaws.com"
+            DomainName: !Sub '${S3Bucket}.s3.${AWS::Region}.amazonaws.com'
             S3OriginConfig:
               OriginAccessIdentity:
                 Fn::Sub: 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
@@ -82,18 +80,18 @@ Resources:
           ForwardedValues:
             QueryString: false
           TargetOriginId: s3-website
-          ViewerProtocolPolicy : redirect-to-https
+          ViewerProtocolPolicy: redirect-to-https
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt RewriteRequestFunction.FunctionMetadata.FunctionARN
 
 Outputs:
   BucketName:
-    Description: "The S3 bucket name where HTML files need to be uploaded"
+    Description: 'The S3 bucket name where HTML files need to be uploaded'
     Value: !Ref S3Bucket
   CloudFrontDistribution:
-    Description: "The CloudFront distribution in front of the S3 bucket"
+    Description: 'The CloudFront distribution in front of the S3 bucket'
     Value: !Ref CloudfrontDistribution
   WebsiteUrl:
-    Description: "The website URL"
-    Value: !Sub "https://${DomainName}/"
+    Description: 'The website URL'
+    Value: !GetAtt CloudfrontDistribution.DomainName
